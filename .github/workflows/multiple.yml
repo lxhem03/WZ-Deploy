@@ -1,0 +1,86 @@
+name: Deploy WZML-X to Multiple Heroku Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      HEROKU_APP_NAMES:
+        description: "Comma-separated Heroku app names"
+        required: true
+      HEROKU_API_KEY:
+        description: "Heroku API Key"
+        required: true
+      confirm:
+        description: "Type YES to start deployment"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "YES" ]; then
+            echo "Deployment cancelled. Type YES to continue."
+            exit 1
+          fi
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Clean File(s)
+        run: |
+          for file in README.md wzv3_hk_deploy.ipynb; do
+            [ -f "$file" ] && rm -f "$file"
+          done
+
+      - name: Install Heroku CLI
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Login to Heroku Container Registry
+        env:
+          HEROKU_API_KEY: ${{ inputs.HEROKU_API_KEY }}
+        run: |
+          echo "$HEROKU_API_KEY" | docker login \
+            --username=_ \
+            --password-stdin registry.heroku.com
+
+      - name: Build Docker Image Once
+        run: |
+          docker build -t wzmlx:latest .
+
+      - name: Deploy to All Apps
+        env:
+          HEROKU_API_KEY: ${{ inputs.HEROKU_API_KEY }}
+          HEROKU_APP_NAMES: ${{ inputs.HEROKU_APP_NAMES }}
+        run: |
+          export HEROKU_API_KEY
+
+          IFS=',' read -ra APPS <<< "$HEROKU_APP_NAMES"
+
+          for APP in "${APPS[@]}"; do
+              APP=$(echo "$APP" | xargs)
+
+              echo "===================================="
+              echo "Deploying to: $APP"
+              echo "===================================="
+
+              # Set container stack
+              curl -X PATCH "https://api.heroku.com/apps/$APP" \
+                -H "Content-Type: application/json" \
+                -H "Accept: application/vnd.heroku+json; version=3" \
+                -H "Authorization: Bearer $HEROKU_API_KEY" \
+                -d '{"build_stack":"container"}' || true
+
+              # Tag image for app
+              docker tag wzmlx:latest registry.heroku.com/$APP/web
+
+              # Push image
+              docker push registry.heroku.com/$APP/web
+
+              # Release image
+              heroku container:release web -a "$APP"
+
+              echo "Successfully deployed: $APP"
+          done
