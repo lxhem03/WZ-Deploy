@@ -20,7 +20,6 @@ langcodes
 language-data
 jinja2
 lxml
-motor
 natsort
 par2cmdline-turbo
 pillow
@@ -28,6 +27,7 @@ psutil
 pycountry
 pymongo
 pyrotgfork
+pytgcrypto
 python-magic
 pytz
 qbittorrent-api
@@ -35,9 +35,8 @@ requests
 speedtest-cli
 telegraph
 tenacity
-tgcrypto
 urllib3
 uvicorn
-uvloop==0.21.0
+uvloop
 xattr
 yt-dlp[default,curl-cffi]
