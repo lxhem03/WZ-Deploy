@@ -11,8 +11,6 @@ from logging import (
     ERROR,
 )
 from os import path, remove, environ
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
 from subprocess import run as srun, call as scall
 
 getLogger("pymongo").setLevel(ERROR)
@@ -50,6 +48,8 @@ BOT_ID = BOT_TOKEN.split(":", 1)[0]
 
 if DATABASE_URL := config_file.get("DATABASE_URL", "").strip():
     try:
+        from pymongo.mongo_client import MongoClient
+        from pymongo.server_api import ServerApi
         conn = MongoClient(DATABASE_URL, server_api=ServerApi("1"))
         db = conn.wzmlx
         old_config = db.settings.deployConfig.find_one({"_id": BOT_ID}, {"_id": 0})
