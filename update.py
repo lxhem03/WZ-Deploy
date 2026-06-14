@@ -57,8 +57,11 @@ if DATABASE_URL := config_file.get("DATABASE_URL", "").strip():
         if (
             old_config is not None and old_config == config_file or old_config is None
         ) and config_dict is not None:
-            config_file["UPSTREAM_REPO"] = config_dict["UPSTREAM_REPO"]
-            config_file["UPSTREAM_BRANCH"] = config_dict.get("UPSTREAM_BRANCH", "lxhem03")
+            # Only pull UPSTREAM_REPO/UPSTREAM_BRANCH from DB if NOT set in env vars
+            if "UPSTREAM_REPO" not in env_updates:
+                config_file["UPSTREAM_REPO"] = config_dict.get("UPSTREAM_REPO", "")
+            if "UPSTREAM_BRANCH" not in env_updates:
+                config_file["UPSTREAM_BRANCH"] = config_dict.get("UPSTREAM_BRANCH", "lxhem03")
             config_file["UPDATE_PKGS"] = config_dict.get("UPDATE_PKGS", "True")
         conn.close()
     except Exception as e:
